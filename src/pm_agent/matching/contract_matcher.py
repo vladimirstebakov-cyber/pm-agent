@@ -181,12 +181,14 @@ async def fetch_rules(market_id: str) -> dict | None:
 
 async def evaluate_pair(poly: dict, kalshi: dict, model: str = GLM_MODEL) -> LLMVerdict:
     """Run LLM matching verdict on one candidate pair."""
-    rules_a = await fetch_rules(poly["poly_id"]) or {}
-    rules_b = await fetch_rules(kalshi["kalshi_id"]) or {}
+    poly = poly or {}
+    kalshi = kalshi or {}
+    rules_a = await fetch_rules(poly.get("poly_id")) or {}
+    rules_b = await fetch_rules(kalshi.get("kalshi_id")) or {}
     prompt = MATCH_PROMPT.format(
-        title_a=poly["poly_title"], rules_a=rules_a.get("rules_text", "")[:2000],
+        title_a=poly.get("poly_title") or "(no title)", rules_a=(rules_a.get("rules_text") or "")[:2000],
         source_a=rules_a.get("resolution_source", ""), cutoff_a=str(rules_a.get("cutoff_time", "")),
-        title_b=kalshi["kalshi_title"], rules_b=rules_b.get("rules_text", "")[:2000],
+        title_b=kalshi.get("kalshi_title") or "(no title)", rules_b=(rules_b.get("rules_text") or "")[:2000],
         source_b=rules_b.get("resolution_source", ""), cutoff_b=str(rules_b.get("cutoff_time", "")),
     )
     raw = await call_llm(model, prompt)
