@@ -6,8 +6,9 @@ services:
       POSTGRES_USER: pm
       POSTGRES_PASSWORD: pm
       POSTGRES_DB: pmagnt
-      TS_TUNE_MEMORY: 1GB
-      TS_TUNE_NUM_CPUS: 2
+      TS_TUNE_MEMORY: 512MB
+      TS_TUNE_NUM_CPUS: 1
+      TS_TUNE_MAX_CONNS: 50
     ports:
       - "5432:5432"
     volumes:
