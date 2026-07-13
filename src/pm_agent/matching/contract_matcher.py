@@ -74,7 +74,8 @@ class LLMVerdict:
 
 
 async def call_llm(model: str, prompt: str) -> dict:
-    """Call OpenRouter chat completions. Returns parsed JSON or raises."""
+    """Call OpenRouter chat completions. Returns parsed JSON.
+    Robust to models that don't support response_format or wrap JSON in markdown."""
     if not OPENROUTER_API_KEY:
         raise RuntimeError("OPENROUTER_API_KEY not set — cannot call LLM for matching")
     async with httpx.AsyncClient(timeout=30) as client:
@@ -85,13 +86,45 @@ async def call_llm(model: str, prompt: str) -> dict:
             json={
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
-                "response_format": {"type": "json_object"},
                 "temperature": 0.0,
             },
         )
-        resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
+        data = resp.json()
+        if "error" in data:
+            raise RuntimeError(f"OpenRouter error: {str(data['error'])[:300]}")
+        choices = data.get("choices")
+        if not choices:
+            raise RuntimeError(f"OpenRouter: no choices in response: {str(data)[:300]}")
+        content = choices[0].get("message", {}).get("content", "")
+        return _extract_json(content)
+
+
+def _extract_json(content: str) -> dict:
+    """Parse JSON from LLM content, handling markdown code fences."""
+    import re
+    if not content:
+        raise RuntimeError("OpenRouter: empty content")
+    # Try direct parse first
+    try:
         return json.loads(content)
+    except Exception:
+        pass
+    # Try extracting from ```json ... ``` or ``` ... ```
+    m = re.search(r"```(?:json)?\s*([\s\S]*?)```", content)
+    if m:
+        try:
+            return json.loads(m.group(1))
+        except Exception:
+            pass
+    # Try finding first { ... last }
+    start = content.find("{")
+    end = content.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(content[start:end+1])
+        except Exception:
+            pass
+    raise RuntimeError(f"OpenRouter: could not parse JSON from content: {content[:200]}")
 
 
 def parse_verdict(raw: dict) -> LLMVerdict:
