@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=pm
+# User=pm (run as root)
 WorkingDirectory=/opt/prediction-agent
 EnvironmentFile=/opt/prediction-agent/.env
 # Phase B: replace --venue filter with arb-matched-pairs watchlist

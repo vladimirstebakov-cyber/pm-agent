@@ -5,11 +5,11 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=pm
+# User=pm (run as root)
 WorkingDirectory=/opt/prediction-agent
 EnvironmentFile=/opt/prediction-agent/.env
-ExecStart=/opt/prediction-agent/.venv/bin/pm-agent collect-markets --pages 10
-Restart=on-failure
+ExecStart=/opt/prediction-agent/.venv/bin/pm-agent collect-markets --pages 2
+Restart=always
 RestartSec=300
 
 [Install]
