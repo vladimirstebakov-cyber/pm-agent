@@ -42,7 +42,19 @@ def _hash(raw: dict) -> str:
 async def upsert_market(m: NormalisedMarket) -> str:
     """Insert market if new, or update metadata. Returns internal market id."""
     market_id = f"{m.venue}:{m.venue_market_id}"
+    event_id = f"{m.venue}:{m.venue_event_id}" if m.venue_event_id else None
     async with db_conn() as conn:
+        # Ensure event exists first (FK constraint)
+        if event_id:
+            await conn.execute(
+                """
+                INSERT INTO events (id, venue_id, venue_event_id, title, category)
+                VALUES (%(id)s, %(venue)s, %(veid)s, %(title)s, %(cat)s)
+                ON CONFLICT (id) DO NOTHING
+                """,
+                dict(id=event_id, venue=m.venue, veid=m.venue_event_id,
+                     title=m.title, cat=m.category),
+            )
         await conn.execute(
             """
             INSERT INTO markets (id, venue_id, venue_market_id, event_id, title, slug, category, status,
@@ -57,7 +69,7 @@ async def upsert_market(m: NormalisedMarket) -> str:
                 updated_at=now()
             """,
             dict(id=market_id, venue=m.venue, vmid=m.venue_market_id,
-                 eid=f"{m.venue}:{m.venue_event_id}" if m.venue_event_id else None,
+                 eid=event_id,
                  title=m.title, slug=m.slug, cat=m.category, status=m.status,
                  open=m.open_time, close=m.close_time, resolve=m.resolve_time),
         )
