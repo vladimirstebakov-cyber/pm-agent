@@ -256,7 +256,10 @@ async def run_matching(threshold: float = 0.5, limit: int = 50, model: str = GLM
             else:
                 human_queue += 1
         except Exception as e:
+            import traceback
             log.warning("matching failed for %s / %s: %s", c["poly_id"], c["kalshi_id"], e)
+            if auto_approved == 0 and human_queue == 0:
+                log.warning("first failure traceback:\n%s", traceback.format_exc())
             human_queue += 1
         await asyncio.sleep(0.5)  # be gentle on LLM API
     return {"candidates": len(candidates), "auto_approved": auto_approved, "human_queue": human_queue}
