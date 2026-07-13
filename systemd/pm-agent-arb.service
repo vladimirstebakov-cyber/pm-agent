@@ -1,0 +1,17 @@
+[Unit]
+Description=pm-agent — arb watchlist snapshots (5s, high frequency)
+After=network-online.target pm-agent-discovery.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pm
+WorkingDirectory=/opt/prediction-agent
+EnvironmentFile=/opt/prediction-agent/.env
+# Phase B: replace --venue filter with arb-matched-pairs watchlist
+ExecStart=/opt/prediction-agent/.venv/bin/pm-agent collect-orderbooks --interval 5 --venue polymarket
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

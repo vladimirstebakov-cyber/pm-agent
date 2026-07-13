@@ -1,0 +1,16 @@
+[Unit]
+Description=pm-agent — market discovery (Polymarket Gamma + Kalshi)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pm
+WorkingDirectory=/opt/prediction-agent
+EnvironmentFile=/opt/prediction-agent/.env
+ExecStart=/opt/prediction-agent/.venv/bin/pm-agent collect-markets --pages 10
+Restart=on-failure
+RestartSec=300
+
+[Install]
+WantedBy=multi-user.target

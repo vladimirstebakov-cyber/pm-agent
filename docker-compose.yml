@@ -1,0 +1,24 @@
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: pmagnt-db
+    environment:
+      POSTGRES_USER: pm
+      POSTGRES_PASSWORD: pm
+      POSTGRES_DB: pmagnt
+      TS_TUNE_MEMORY: 1GB
+      TS_TUNE_NUM_CPUS: 2
+    ports:
+      - "5432:5432"
+    volumes:
+      - pmagnt-db-data:/var/lib/postgresql/data
+      - ./src/pm_agent/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pm -d pmagnt"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pmagnt-db-data:

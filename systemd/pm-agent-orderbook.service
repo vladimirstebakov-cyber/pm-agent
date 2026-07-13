@@ -1,0 +1,16 @@
+[Unit]
+Description=pm-agent — orderbook snapshots (liquid watchlist, 15s)
+After=network-online.target pm-agent-discovery.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pm
+WorkingDirectory=/opt/prediction-agent
+EnvironmentFile=/opt/prediction-agent/.env
+ExecStart=/opt/prediction-agent/.venv/bin/pm-agent collect-orderbooks --interval 15
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
