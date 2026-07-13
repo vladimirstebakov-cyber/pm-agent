@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 # LLM endpoints (OpenRouter-compatible). Configure via env.
 OPENROUTER_BASE = os.getenv("OPENROUTER_BASE", "https://openrouter.ai/api/v1")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-GLM_MODEL = os.getenv("GLM_MODEL", "zhipu/glm-5.2")
+GLM_MODEL = os.getenv("GLM_MODEL", "z-ai/glm-5.2")
 OPUS_MODEL = os.getenv("OPUS_MODEL", "anthropic/claude-opus-4.8")
 
 
