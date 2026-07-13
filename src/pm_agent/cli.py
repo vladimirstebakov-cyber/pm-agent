@@ -26,14 +26,24 @@ def cli(log_level: str | None) -> None:
 
 @cli.command("init-db")
 def init_db() -> None:
-    """Run schema.sql against configured database."""
+    """Run schema.sql + all migrations against configured database."""
     import pathlib
     import psycopg
-    schema = pathlib.Path(__file__).parent / "db" / "schema.sql"
-    sql = schema.read_text()
+    base = pathlib.Path(__file__).parent / "db"
+    sql_files = [
+        base / "schema.sql",
+        base / "migrations" / "02_phase_b.sql",
+        base / "migrations" / "03_phase_cd.sql",
+    ]
     with psycopg.connect(settings.database_url, autocommit=True) as conn:
-        conn.execute(sql)
-    console.print("[green]Schema applied.[/green]")
+        for sql_file in sql_files:
+            if not sql_file.exists():
+                console.print(f"[yellow]skip (not found): {sql_file.name}[/yellow]")
+                continue
+            sql = sql_file.read_text()
+            conn.execute(sql)
+            console.print(f"[green]applied: {sql_file.name}[/green]")
+    console.print("[green]All schema + migrations applied.[/green]")
 
 
 @cli.command("collect-markets")
