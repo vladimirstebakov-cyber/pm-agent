@@ -10,7 +10,7 @@ services:
       TS_TUNE_NUM_CPUS: 1
       TS_TUNE_MAX_CONNS: 50
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pmagnt-db-data:/var/lib/postgresql/data
       - ./src/pm_agent/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
