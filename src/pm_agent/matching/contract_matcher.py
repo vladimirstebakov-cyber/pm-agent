@@ -147,7 +147,7 @@ async def fetch_candidate_pairs(threshold: float = 0.5, limit: int = 100) -> lis
             "ON markets USING GIN (lower(title) gin_trgm_ops)"
         )
         async with conn.cursor(row_factory=dict_row) as cur:
-            await cur.execute("SET pg_trgm.similarity_threshold = %s", (threshold,))
+            await cur.execute("SELECT set_config('pg_trgm.similarity_threshold', %s, false)", (str(threshold),))
             await cur.execute(
                 """
                 SELECT a.id AS poly_id, a.title AS poly_title,
