@@ -68,12 +68,23 @@ class PolymarketGammaClient:
     @staticmethod
     def outcomes(raw: dict) -> list[NormalisedOutcome]:
         cid = str(raw.get("conditionId") or raw.get("condition_id") or raw.get("id"))
-        outcomes = raw.get("outcomes") or []
-        tokens = raw.get("clobTokenIds") or raw.get("clobtokenids") or []
+        outcomes_raw = raw.get("outcomes") or []
+        # Gamma returns JSON-encoded strings, not lists
+        if isinstance(outcomes_raw, str):
+            try:
+                outcomes_raw = json.loads(outcomes_raw)
+            except Exception:
+                outcomes_raw = []
+        tokens_raw = raw.get("clobTokenIds") or raw.get("clobtokenids") or []
+        if isinstance(tokens_raw, str):
+            try:
+                tokens_raw = json.loads(tokens_raw)
+            except Exception:
+                tokens_raw = []
         result: list[NormalisedOutcome] = []
-        names = outcomes if isinstance(outcomes, list) else []
+        names = outcomes_raw if isinstance(outcomes_raw, list) else []
         for i, name in enumerate(names):
-            token = tokens[i] if i < len(tokens) else None
+            token = tokens_raw[i] if i < len(tokens_raw) else None
             result.append(NormalisedOutcome(
                 venue="polymarket",
                 venue_market_id=cid,
