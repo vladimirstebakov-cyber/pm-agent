@@ -46,6 +46,7 @@ class NormalisedOrderbook(BaseModel):
     ts_exchange: str | None = None
     best_bid: float | None = None
     best_ask: float | None = None
+    mid: float | None = None
     levels: list[OrderbookLevel] = Field(default_factory=list)
     raw: dict = Field(default_factory=dict)
 
