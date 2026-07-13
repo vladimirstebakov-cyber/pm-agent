@@ -56,7 +56,7 @@ def collect_markets(pages: int) -> None:
 async def _collect_markets(pages: int) -> None:
     await get_pool()
     poly = market_discovery.discover_polymarket(pages=pages)
-    kalshi = market_discovery.discover_kalshi(pages=pages)
+    kalshi = market_discovery.discover_kalshi(events_pages=pages, markets_pages=pages)
     p, k = await asyncio.gather(poly, kalshi)
     console.print(f"Polymarket: {p} markets | Kalshi: {k} markets")
 

@@ -206,6 +206,8 @@ async def store_pair(poly: dict, kalshi: dict, verdict: LLMVerdict, model: str) 
         "requires_human_review": verdict.requires_human_review,
         "model": model,
     }
+    from datetime import datetime, timezone
+    approved_at_val = datetime.now(timezone.utc) if auto_approve else None
     async with db_conn() as conn:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(
@@ -213,7 +215,7 @@ async def store_pair(poly: dict, kalshi: dict, verdict: LLMVerdict, model: str) 
                 INSERT INTO matched_pairs
                     (polymarket_market_id, kalshi_market_id, title_similarity,
                      candidate_status, llm_verdict, mismatch_risk, approved_at, approved_by)
-                VALUES (%(pid)s, %(kid)s, %(sim)s, %(status)s, %(vj)s, %(mr)s, COALESCE(%(at)s, now()), %(ab)s)
+                VALUES (%(pid)s, %(kid)s, %(sim)s, %(status)s, %(vj)s, %(mr)s, %(at)s, %(ab)s)
                 ON CONFLICT (polymarket_market_id, kalshi_market_id) DO UPDATE SET
                     candidate_status=EXCLUDED.candidate_status,
                     llm_verdict=EXCLUDED.llm_verdict,
@@ -224,10 +226,10 @@ async def store_pair(poly: dict, kalshi: dict, verdict: LLMVerdict, model: str) 
                 """,
                 dict(pid=poly["poly_id"], kid=kalshi["kalshi_id"], sim=poly.get("sim", 0),
                      status=status, vj=json.dumps(verdict_json), mr=verdict.mismatch_risk,
-                     at=approved_by and "now()", ab=approved_by),
+                     at=approved_at_val, ab=approved_by),
             )
             row = await cur.fetchone()
-            return row["id"]
+            return row["id"] if row else 0
 
 
 async def run_matching(threshold: float = 0.5, limit: int = 50, model: str = GLM_MODEL) -> dict:

@@ -38,20 +38,53 @@ async def discover_polymarket(limit: int = 100, pages: int = 5) -> int:
     return count
 
 
-async def discover_kalshi(limit: int = 100, pages: int = 5) -> int:
-    """Poll Kalshi /markets, upsert markets + outcomes."""
+async def discover_kalshi(events_pages: int = 20, markets_pages: int = 10) -> int:
+    """Poll Kalshi events (with categories) then markets. Political/economic events
+    are only available via /events, not /markets (which returns sports-heavy MVEs)."""
     client = KalshiRestClient()
     count = 0
     try:
+        # 1. Fetch events (with categories) — paginate
+        event_categories: dict[str, str] = {}
+        event_titles: dict[str, str] = {}
         cursor = None
-        for _ in range(pages):
-            data = await client.get_markets(status="open", limit=limit, cursor=cursor)
+        for _ in range(events_pages):
+            data = await client.get_events(status="open", limit=100, cursor=cursor)
+            events = data.get("events") or []
+            cursor = data.get("cursor")
+            if not events:
+                break
+            for ev in events:
+                et = ev.get("event_ticker", "")
+                cat = ev.get("category")
+                title = ev.get("title")
+                if et:
+                    if cat:
+                        event_categories[et] = cat
+                    if title:
+                        event_titles[et] = title
+                    await repo.upsert_event("kalshi", et, title, cat)
+            if not cursor:
+                break
+        log.info("kalshi events: %d (categories: %s)", len(event_categories),
+                  dict(list({k: v for k, v in event_categories.items()}.items())[:5]))
+
+        # 2. Fetch markets, set category from event lookup
+        cursor = None
+        for _ in range(markets_pages):
+            data = await client.get_markets(status="open", limit=100, cursor=cursor)
             raws = data.get("markets") or []
             cursor = data.get("cursor")
             if not raws:
                 break
             for raw in raws:
                 m = KalshiRestClient.normalise_market(raw)
+                # Enrich category from event
+                et = raw.get("event_ticker")
+                if et and et in event_categories:
+                    m.category = event_categories[et]
+                if et and not m.title and et in event_titles:
+                    m.title = event_titles[et]
                 market_id = await repo.upsert_market(m)
                 for o in KalshiRestClient.outcomes(raw):
                     await repo.upsert_outcome(o)

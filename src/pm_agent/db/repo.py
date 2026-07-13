@@ -39,6 +39,23 @@ def _hash(raw: dict) -> str:
 
 # ---------- Markets ----------
 
+async def upsert_event(venue: str, venue_event_id: str, title: str | None, category: str | None) -> str:
+    """Upsert an event with its category (Kalshi events carry category; markets don't)."""
+    event_id = f"{venue}:{venue_event_id}"
+    async with db_conn() as conn:
+        await conn.execute(
+            """
+            INSERT INTO events (id, venue_id, venue_event_id, title, category)
+            VALUES (%(id)s, %(venue)s, %(veid)s, %(title)s, %(cat)s)
+            ON CONFLICT (id) DO UPDATE SET
+                title=COALESCE(EXCLUDED.title, events.title),
+                category=COALESCE(EXCLUDED.category, events.category)
+            """,
+            dict(id=event_id, venue=venue, veid=venue_event_id, title=title, cat=category),
+        )
+    return event_id
+
+
 async def upsert_market(m: NormalisedMarket) -> str:
     """Insert market if new, or update metadata. Returns internal market id."""
     market_id = f"{m.venue}:{m.venue_market_id}"
@@ -63,6 +80,7 @@ async def upsert_market(m: NormalisedMarket) -> str:
                     %(open)s, %(close)s, %(resolve)s, now())
             ON CONFLICT (id) DO UPDATE SET
                 title=EXCLUDED.title, status=EXCLUDED.status,
+                category=COALESCE(EXCLUDED.category, markets.category),
                 open_time=COALESCE(EXCLUDED.open_time, markets.open_time),
                 close_time=COALESCE(EXCLUDED.close_time, markets.close_time),
                 resolve_time=COALESCE(EXCLUDED.resolve_time, markets.resolve_time),
