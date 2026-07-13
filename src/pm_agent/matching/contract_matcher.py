@@ -156,7 +156,7 @@ async def fetch_candidate_pairs(threshold: float = 0.5, limit: int = 100) -> lis
                 FROM markets a
                 JOIN markets b ON b.venue_id='kalshi' AND a.venue_id='polymarket'
                   AND a.status='active' AND b.status='active'
-                  AND lower(a.title) % lower(b.title)
+                  AND lower(a.title) %% lower(b.title)
                 WHERE similarity(lower(a.title), lower(b.title)) > %s
                 LIMIT %s
                 """,
