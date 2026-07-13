@@ -139,10 +139,15 @@ def parse_verdict(raw: dict) -> LLMVerdict:
 
 
 async def fetch_candidate_pairs(threshold: float = 0.5, limit: int = 100) -> list[dict]:
-    """Candidate pairs by title similarity (requires pg_trgm extension)."""
+    """Candidate pairs by title similarity (requires pg_trgm + GIN index for speed)."""
     async with db_conn() as conn:
         await conn.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
+        await conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_markets_title_trgm "
+            "ON markets USING GIN (lower(title) gin_trgm_ops)"
+        )
         async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute("SET pg_trgm.similarity_threshold = %s", (threshold,))
             await cur.execute(
                 """
                 SELECT a.id AS poly_id, a.title AS poly_title,
@@ -151,6 +156,7 @@ async def fetch_candidate_pairs(threshold: float = 0.5, limit: int = 100) -> lis
                 FROM markets a
                 JOIN markets b ON b.venue_id='kalshi' AND a.venue_id='polymarket'
                   AND a.status='active' AND b.status='active'
+                  AND lower(a.title) % lower(b.title)
                 WHERE similarity(lower(a.title), lower(b.title)) > %s
                 LIMIT %s
                 """,
